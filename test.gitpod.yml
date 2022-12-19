@@ -1,0 +1,46 @@
+image:
+  file: Dockerfile
+  context: .
+
+tasks:
+  - id: install-dependencies
+    command: |
+      apk add --no-cache bash
+      apk add --no-cache git
+      apk add --no-cache python3
+      apk add --no-cache python3-dev
+      apk add --no-cache postgresql-dev
+      apk add --no-cache libffi-dev
+      apk add --no-cache gcc
+      apk add --no-cache musl-dev
+      apk add --no-cache libc-dev
+      apk add --no-cache make
+      python3 -m ensurepip --upgrade
+      rm -r /usr/lib/python*/ensurepip
+      pip3 install --upgrade pip setuptools
+      pip3 install psycopg2-binary
+      pip3 install virtualenv
+  - id: clone-repo
+    command: git clone https://github.com/apache/airflow.git
+  - id: build-environment
+    command: |
+      cd airflow
+      virtualenv venv
+      source venv/bin/activate
+      pip install -r requirements.txt
+  - id: initialize-database
+    command: airflow initdb
+  - id: start-webserver-and-scheduler
+    command: |
+      airflow webserver -p 8080 &
+      airflow scheduler &
+
+ports:
+  - 8080:8080
+
+on-workspace-init:
+  - install-dependencies
+  - clone-repo
+  - build-environment
+  - initialize-database
+  - start-webserver-and-scheduler
